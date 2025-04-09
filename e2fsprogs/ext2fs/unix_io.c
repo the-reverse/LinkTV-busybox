@@ -60,6 +60,8 @@ struct unix_cache {
 #define WRITE_DIRECT_SIZE 4	/* Must be smaller than CACHE_SIZE */
 #define READ_DIRECT_SIZE 4	/* Should be smaller than CACHE_SIZE */
 
+#define NO_IO_CACHE
+
 struct unix_private_data {
 	int	magic;
 	int	dev;
@@ -81,6 +83,7 @@ static errcode_t unix_write_byte(io_channel channel, unsigned long offset,
 				int size, const void *data);
 static errcode_t unix_set_option(io_channel channel, const char *option,
 				 const char *arg);
+static errcode_t unix_reopen(io_channel channel, int flags);
 
 static void reuse_cache(io_channel channel, struct unix_private_data *data,
 		 struct unix_cache *cache, unsigned long block);
@@ -107,7 +110,8 @@ static struct struct_io_manager struct_unix_manager = {
 #else
 	unix_write_byte,
 #endif
-	unix_set_option
+	unix_set_option,
+	unix_reopen
 };
 
 io_manager unix_io_manager = &struct_unix_manager;
@@ -462,6 +466,26 @@ cleanup:
 	}
 	ext2fs_free_mem(&io);
 	return retval;
+}
+
+static errcode_t unix_reopen(io_channel io, int flags) {
+	struct unix_private_data *data;
+
+	data = (struct unix_private_data *) io->private_data;
+
+	if (close(data->dev) != 0) {
+		return errno;
+	}
+	//printf("reopen file %s, flag %d\n", io->name, flags);
+#ifdef CONFIG_LFS
+        data->dev = open64(io->name, flags);
+#else
+        data->dev = open(io->name, flags);
+#endif
+        if (data->dev < 0) {
+                return errno;
+        }
+	return 0;
 }
 
 static errcode_t unix_close(io_channel channel)

@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include <errno.h>
 #include <sys/klog.h>
 
@@ -27,53 +28,71 @@
 
 int dmesg_main(int argc, char **argv)
 {
-	char *buf, *tmp;
+	char *buf
+#ifdef CONFIG_FEATURE_CLEAN_UP
+		= NULL
+#endif
+		;
 	int bufsize = 8196;
-	int i, n = 0;
-	int c = 3;
+	int i, n;
+	int level = 0;
+	int lastc;
+	int cmd = 3;
 
-	i = bb_getopt_ulflags(argc, argv, "cn:s:", &buf, &tmp);
-	if (i & 1)
-				c = 4;
-	if (i & 2) {
-				c = 8;
-				n = bb_xgetlarg(buf, 10, 0, 10);
-	}
-	if (i & 4)
+	while ((i = getopt(argc, argv, "cn:s:")) > 0) {
+		switch (i) {
+			case 'c':
+				cmd = 4;
+				break;
+			case 'n':
+				cmd = 8;
+				level = bb_xgetlarg(optarg, 10, 0, 10);
+				break;
+			case 's':
 				/* I think a 512k max kernel ring buffer is big enough for
 				 * anybody, as the default is 16k...  Could be wrong though.
 				 * If so I'm sure I'll hear about it by the enraged masses*/
-				bufsize = bb_xgetlarg(tmp, 10, 4096, 512*1024);
+				bufsize = bb_xgetlarg(optarg, 10, 4096, 512*1024);
+				break;
+			default:
+				bb_show_usage();
+		}
+	}
 
-	if (c == 8) {
-		if (klogctl(c, NULL, n) < 0)
+	if (optind < argc) {
+		bb_show_usage();
+	}
+
+	if (cmd == 8) {
+		if (klogctl(cmd, NULL, level) < 0)
 			goto die_the_death;
 		goto all_done;
 	}
 
 	buf = xmalloc(bufsize);
-	if ((n = klogctl(c, buf, bufsize)) < 0)
+	if ((n = klogctl(cmd, buf, bufsize)) < 0)
 		goto die_the_death;
 
-	c = '\n';
+	lastc = '\n';
 	for (i = 0; i < n; i++) {
-		if (c == '\n' && buf[i] == '<') {
+		if (lastc == '\n' && buf[i] == '<') {
 			i++;
 			while (buf[i] >= '0' && buf[i] <= '9')
 				i++;
 			if (buf[i] == '>')
 				i++;
 		}
-		c = buf[i];
-		putchar(c);
+		lastc = buf[i];
+		putchar(lastc);
 	}
-	if (c != '\n')
+	if (lastc != '\n')
 		putchar('\n');
 all_done:
-	if (ENABLE_FEATURE_CLEAN_UP) {
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	if (buf) {
 		free(buf);
 	}
-
+#endif
 	return EXIT_SUCCESS;
 die_the_death:
 	bb_perror_nomsg_and_die();

@@ -58,6 +58,7 @@
  * The second extended file system magic number
  */
 #define EXT2_SUPER_MAGIC	0xEF53
+#define EXTK_SUPER_MAGIC	0x35FE
 
 #ifdef __KERNEL__
 #define EXT2_SB(sb)	(&((sb)->u.ext2_sb))

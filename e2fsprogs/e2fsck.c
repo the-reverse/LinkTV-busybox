@@ -3045,10 +3045,12 @@ static errcode_t e2fsck_get_journal(e2fsck_t ctx, journal_t **ret_journal)
 		       sizeof(jsuper));
 		brelse(bh);
 #ifdef EXT2FS_ENABLE_SWAPFS
-		if (jsuper.s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC))
+		if (jsuper.s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC) ||
+		    jsuper.s_magic == ext2fs_swab16(EXTK_SUPER_MAGIC))
 			ext2fs_swap_super(&jsuper);
 #endif
-		if (jsuper.s_magic != EXT2_SUPER_MAGIC ||
+		if ((jsuper.s_magic != EXT2_SUPER_MAGIC &&
+		     jsuper.s_magic != EXTK_SUPER_MAGIC) ||
 		    !(jsuper.s_feature_incompat & EXT3_FEATURE_INCOMPAT_JOURNAL_DEV)) {
 			fix_problem(ctx, PR_0_EXT_JOURNAL_BAD_SUPER, &pctx);
 			retval = EXT2_ET_LOAD_EXT_JOURNAL;
@@ -14562,10 +14564,12 @@ blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs, const char *name,
 					-SUPERBLOCK_SIZE, buf))
 			continue;
 #ifdef EXT2FS_ENABLE_SWAPFS
-		if (sb->s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC))
+		if (sb->s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC) ||
+		    sb->s_magic == ext2fs_swab16(EXTK_SUPER_MAGIC))
 			ext2fs_swap_super(sb);
 #endif
-		if (sb->s_magic == EXT2_SUPER_MAGIC) {
+		if (sb->s_magic == EXT2_SUPER_MAGIC ||
+		    sb->s_magic == EXTK_SUPER_MAGIC) {
 			ret_sb = superblock;
 			if (ctx) {
 				ctx->superblock = superblock;

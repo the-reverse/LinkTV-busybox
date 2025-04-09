@@ -44,6 +44,8 @@
 
 /* Path to the unix socket */
 static char lfile[MAXPATHLEN];
+/* Add support of -p parameter of syslogd */
+static const char *logSockPath = _PATH_LOG;
 
 static const char *logFilePath = __LOG_FILE;
 
@@ -411,7 +413,10 @@ static void logMessage(int pri, char *msg)
 	} else {
 		timestamp = msg;
 		timestamp[15] = '\0';
-		msg += 16;
+// To log AP console message to log file.
+// Skip "kernel: "
+//		msg += 16;
+		msg += 24;
 	}
 
 	/* todo: supress duplicates */
@@ -445,10 +450,13 @@ static void logMessage(int pri, char *msg)
 #endif
 	{
 		/* now spew out the message to wherever it is supposed to go */
+// To log AP console message to log file.
 		if (small)
-			message("%s %s\n", timestamp, msg);
+//			message("%s %s\n", timestamp, msg);
+			message("%s\n",msg);
 		else
-			message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
+//			message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
+			message("%s\n",msg);
 	}
 }
 
@@ -496,11 +504,12 @@ static int serveConnection(char *tmpbuf, int n_read)
 				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)) {
 					pri = (LOG_USER | LOG_NOTICE);
 				}
-			} else if (c == '\n') {
-				*q++ = ' ';
-			} else if (iscntrl(c) && (c < 0177)) {
-				*q++ = '^';
-				*q++ = c ^ 0100;
+// To log AP console message to log file.
+//			} else if (c == '\n') {
+//				*q++ = ' ';
+//			} else if (iscntrl(c) && (c < 0177)) {
+//				*q++ = '^';
+//				*q++ = c ^ 0100;
 			} else {
 				*q++ = c;
 			}
@@ -536,7 +545,8 @@ static void doSyslogd(void)
 	alarm(MarkInterval);
 
 	/* Create the syslog file so realpath() can work. */
-	if (realpath(_PATH_LOG, lfile) != NULL) {
+	/* Add support of -p parameter of syslogd */
+	if (realpath(logSockPath, lfile) != NULL) {
 		unlink(lfile);
 	}
 
@@ -544,17 +554,20 @@ static void doSyslogd(void)
 	sunx.sun_family = AF_UNIX;
 	strncpy(sunx.sun_path, lfile, sizeof(sunx.sun_path));
 	if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
-		bb_perror_msg_and_die("Couldn't get file descriptor for socket "
-						   _PATH_LOG);
+		/* Add support of -p parameter of syslogd */
+		bb_perror_msg_and_die("Couldn't get file descriptor for socket %s",
+						   logSockPath);
 	}
 
 	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
 	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0) {
-		bb_perror_msg_and_die("Could not connect to socket " _PATH_LOG);
+		/* Add support of -p parameter of syslogd */
+		bb_perror_msg_and_die("Could not connect to socket %s", logSockPath);
 	}
 
 	if (chmod(lfile, 0666) < 0) {
-		bb_perror_msg_and_die("Could not set permission on " _PATH_LOG);
+		/* Add support of -p parameter of syslogd */
+		bb_perror_msg_and_die("Could not set permission on %s", logSockPath);
 	}
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
 	if (circular_logging == TRUE) {
@@ -611,7 +624,8 @@ int syslogd_main(int argc, char **argv)
 	char *p;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "m:nO:s:Sb:R:LC::")) > 0) {
+	/* Add support of -p parameter of syslogd */
+	while ((opt = getopt(argc, argv, "m:nO:s:p:Sb:R:LC::")) > 0) {
 		switch (opt) {
 		case 'm':
 			MarkInterval = atoi(optarg) * 60;
@@ -621,6 +635,10 @@ int syslogd_main(int argc, char **argv)
 			break;
 		case 'O':
 			logFilePath = optarg;
+			break;
+		/* Add support of -p parameter of syslogd */
+		case 'p':
+			logSockPath = optarg;
 			break;
 #ifdef CONFIG_FEATURE_ROTATE_LOGFILE
 		case 's':

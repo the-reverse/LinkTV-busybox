@@ -18,10 +18,12 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-int setsid_main(int argc, char *argv[])
-{
-	if (argc < 2)
+int
+setsid_main(int argc, char *argv[]) {
+
+	if (argc < 2) {
 		bb_show_usage();
+	}
 
 	if (getpgrp() == getpid()) {
 		switch(fork()){
@@ -39,5 +41,6 @@ int setsid_main(int argc, char *argv[])
 
 	execvp(argv[1], argv + 1);
 
-	bb_perror_msg_and_die("%s", argv[1]);
+	bb_perror_msg_and_die(argv[1]);
+
 }

@@ -17,7 +17,8 @@
 #include <string.h>
 
 /* returns the array number of the string */
-int compare_string_array(const char * const string_array[], const char *key)
+extern int
+compare_string_array(const char * const string_array[], const char *key)
 {
 	int i;
 

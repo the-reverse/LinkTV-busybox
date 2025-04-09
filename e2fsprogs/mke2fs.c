@@ -34,7 +34,7 @@
 #include "ext2fs/ext2fs.h"
 #include "util.h"
 
-#define STRIDE_LENGTH 8
+#define STRIDE_LENGTH 64
 
 #ifndef __sparc__
 #define ZAP_BOOTBLOCK
@@ -399,14 +399,34 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 		return 0;
 	}
 	/* Allocate the zeroizing buffer if necessary */
+	//printf("zero out start %d, %d blocks\n", blk, num);
 	if (!buf) {
-		buf = xcalloc(fs->blocksize, STRIDE_LENGTH);
+//		buf = xcalloc(fs->blocksize, STRIDE_LENGTH);
+		buf = memalign(getpagesize(), fs->blocksize * STRIDE_LENGTH);
+
+		if (buf == NULL) {
+			printf("outch, no memory\n");
+			buf = xcalloc(fs->blocksize, STRIDE_LENGTH);
+		} else 
+			memset(buf, 0, fs->blocksize * STRIDE_LENGTH);
 	}
 	/* OK, do the write loop */
 	next_update = 0;
 	next_update_incr = num / 100;
 	if (next_update_incr < 1)
 		next_update_incr = 1;
+
+	//printf("reopen for O_DIRECT flag\n");
+	retval = io_channel_reopen(fs->io, O_RDWR | O_DIRECT);
+	if (retval) {
+		printf("error reopen %s\n", strerror(retval));
+		if (ret_count)
+			*ret_count = num;
+                if (ret_blk)
+                        *ret_blk = 0;
+                return retval;
+	}
+
 	for (j=0; j < num; j += STRIDE_LENGTH, blk += STRIDE_LENGTH) {
 		count = num - j;
 		if (count > STRIDE_LENGTH)
@@ -424,6 +444,10 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 			progress_update(progress, blk);
 		}
 	}
+	//printf("reset \n");
+        io_channel_reopen(fs->io, O_RDWR);
+
+	//printf("done with inode table!!!\n");
 	return 0;
 }
 
@@ -843,7 +867,8 @@ static int PRS(int argc, char *argv[])
 #endif
 
 	/* If called as mkfs.ext3, create a journal inode */
-	if (last_char_is(bb_applet_name, '3'))
+	if (last_char_is(bb_applet_name, '3') || 
+	    last_char_is(bb_applet_name, 'k'))
 		journal_size = -1;
 
 	while ((c = getopt (argc, argv,
@@ -1228,8 +1253,13 @@ int mke2fs_main (int argc, char *argv[])
 	/*
 	 * Initialize the superblock....
 	 */
-	retval = ext2fs_initialize(device_name, 0, &param,
-				   io_ptr, &fs);
+	if (last_char_is(bb_applet_name, 'k')) {
+	    retval = ext2fs_initialize(device_name, EXT2_FLAG_KMARKER, &param,
+				       io_ptr, &fs);
+	} else {
+	    retval = ext2fs_initialize(device_name, 0, &param,
+				       io_ptr, &fs);
+	}
 	mke2fs_error_msg_and_die(retval, "set up superblock");
 
 	/*

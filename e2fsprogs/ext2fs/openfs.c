@@ -177,6 +177,7 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 
 #ifdef EXT2FS_ENABLE_SWAPFS
 	if ((fs->super->s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC)) ||
+	    (fs->super->s_magic == ext2fs_swab16(EXTK_SUPER_MAGIC))
 	    (fs->flags & EXT2_FLAG_SWAP_BYTES)) {
 		fs->flags |= EXT2_FLAG_SWAP_BYTES;
 
@@ -184,7 +185,8 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 	}
 #endif
 
-	if (fs->super->s_magic != EXT2_SUPER_MAGIC) {
+	if (fs->super->s_magic != EXT2_SUPER_MAGIC && 
+	    fs->super->s_magic != EXTK_SUPER_MAGIC) {
 		retval = EXT2_ET_BAD_MAGIC;
 		goto cleanup;
 	}

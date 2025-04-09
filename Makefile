@@ -170,14 +170,26 @@ scripts/config/mconf: scripts/config/Makefile
 	fi
 
 menuconfig: scripts/config/mconf
+	if [ '$(CONF)' != '' ]; then \
+	cp $(CONF) .config; \
+	fi
 	@[ -f .config ] || make $(MAKEFLAGS) defconfig
 	@./scripts/config/mconf $(CONFIG_CONFIG_IN)
+	if [ '$(CONF)' != '' ]; then \
+	cp .config $(CONF); \
+	fi
 
 config: scripts/config/conf
 	@./scripts/config/conf $(CONFIG_CONFIG_IN)
 
 oldconfig: scripts/config/conf
+	if [ '$(CONF)' != '' ]; then \
+	cp $(CONF) .config; \
+	fi
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+	if [ '$(CONF)' != '' ]; then \
+	cp .config $(CONF); \
+	fi
 
 randconfig: scripts/config/conf
 	@./scripts/config/conf -r $(CONFIG_CONFIG_IN)

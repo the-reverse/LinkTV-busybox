@@ -75,6 +75,7 @@ struct struct_io_manager {
 				int count, const void *data);
 	errcode_t (*set_option)(io_channel channel, const char *option,
 				const char *arg);
+	errcode_t (*reopen)(io_channel channel, int flags);
 	int             reserved[14];
 };
 
@@ -88,6 +89,7 @@ struct struct_io_manager {
 #define io_channel_read_blk(c,b,n,d)	((c)->manager->read_blk((c),b,n,d))
 #define io_channel_write_blk(c,b,n,d)	((c)->manager->write_blk((c),b,n,d))
 #define io_channel_flush(c)		((c)->manager->flush((c)))
+#define io_channel_reopen(c, d)		((c)->manager->reopen((c),d))
 #define io_channel_bumpcount(c)		((c)->refcount++)
 
 /* io_manager.c */

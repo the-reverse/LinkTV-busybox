@@ -136,7 +136,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 		add_to_ino_dev_hashtable(&source_stat, dest);
 #endif
-		src_fd = open(source, O_RDONLY);
+		src_fd = open(source, O_RDONLY|0x20000000);
 		if (src_fd == -1) {
 			bb_perror_msg("unable to open `%s'", source);
 			return(-1);
@@ -151,7 +151,7 @@ int copy_file(const char *source, const char *dest, int flags)
 				}
 			}
 
-			dst_fd = open(dest, O_WRONLY|O_TRUNC);
+			dst_fd = open(dest, O_WRONLY|O_TRUNC|0x20000000);
 			if (dst_fd == -1) {
 				if (!(flags & FILEUTILS_FORCE)) {
 					bb_perror_msg("unable to open `%s'", dest);
@@ -169,7 +169,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			}
 		} else {
 dest_removed:
-			dst_fd = open(dest, O_WRONLY|O_CREAT, source_stat.st_mode);
+			dst_fd = open(dest, O_WRONLY|O_CREAT|0x20000000, source_stat.st_mode);
 			if (dst_fd == -1) {
 				bb_perror_msg("unable to open `%s'", dest);
 				close(src_fd);

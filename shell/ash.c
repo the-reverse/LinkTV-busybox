@@ -677,6 +677,112 @@ static const char *tokname(int tok)
 	return buf;
 }
 
+int log_event_count(const char *filename, const char *event)
+{
+	char processdata[256], tmpdata[16];
+	char *ptr;
+	int fd, fdtmp, datalen, offset;
+	struct stat st;
+
+	fd = open(filename, O_CREAT | O_RDWR, S_IRWXU | S_IRGRP | S_IROTH);
+	if(fd<0) {
+		perror("");
+		return -1;
+	}
+	if(fstat(fd, &st)) goto FILE_ERROR2;
+	if(st.st_size > 0x1000) {
+		close(fd);
+		sprintf(processdata, "mv %s %s.bak; rm %s", filename, filename, filename);
+		system(processdata);
+		fd = open(filename, O_CREAT | O_RDWR, S_IRWXU | S_IRGRP | S_IROTH);
+		if(fd<0) {
+			perror("");
+			return -1;
+		}
+	}
+		
+	if(lseek(fd, 0, SEEK_SET)!=0) goto FILE_ERROR2;
+	if(lockf(fd, F_LOCK, 0)<0) goto FILE_ERROR2;
+	lseek(fd, 0, SEEK_END);
+	if(write(fd, event, strlen(event))<0) goto FILE_ERROR;
+	if(write(fd, ": ", 2)<0) goto FILE_ERROR;
+
+	sprintf(processdata, "/proc/%d/cmdline", getppid());
+	if((fdtmp = open(processdata, O_RDONLY))>0) {
+		datalen = read(fdtmp, processdata, 255);
+		if(datalen < 0) {
+			close(fdtmp);
+			goto FILE_ERROR;
+		}
+		processdata[datalen] = 0;
+	} else
+		goto FILE_ERROR;
+	close(fdtmp);
+	sprintf(tmpdata, " %d ", getppid());
+	strcat(processdata, tmpdata);
+	if(write(fd, processdata, strlen(processdata))<0) goto FILE_ERROR;
+
+	sprintf(processdata, "/proc/%d/status", getppid());
+	if((fdtmp = open(processdata, O_RDONLY))>0) {
+		datalen = read(fdtmp, processdata, 255);
+		if(datalen < 0) {
+			close(fdtmp);
+			goto FILE_ERROR;
+		}
+		processdata[datalen] = 0;
+	} else {
+		goto FILE_ERROR;
+	}
+	close(fdtmp);
+	ptr = strcasestr(processdata, "PPid:");
+	if(!ptr)
+		goto FILE_ERROR;
+	else
+		ptr+=strlen("PPid:");
+	offset = 0;
+	while(*ptr<'0' || *ptr>'9') ptr++;
+	while(*ptr>='0' && *ptr<='9')
+		tmpdata[offset++] = *ptr++;
+	tmpdata[offset] = 0;
+// If the PID of the parent process of init is 0, no doing this because there is no this directory: /proc/0
+	if(!strcmp(tmpdata, "0")) {
+		write(fd, "\n", 1);
+		lseek(fd, 0, SEEK_SET);
+		lockf(fd, F_ULOCK, 0);
+		close(fd);
+		return 0;
+	}
+	sprintf(processdata, "/proc/%s/cmdline", tmpdata);
+	if((fdtmp = open(processdata, O_RDONLY))>0) {
+		datalen = read(fdtmp, processdata, 255);
+		if(datalen < 0) {
+			close(fdtmp);
+			goto FILE_ERROR;
+		}
+		processdata[datalen] = 0;
+	} else
+		goto FILE_ERROR;
+	close(fdtmp);
+	strcat(processdata, " ");
+	strcat(processdata, tmpdata);
+	strcat(processdata, "\n");
+	if(write(fd, processdata, strlen(processdata))<0) goto FILE_ERROR;
+//	sprintf(processdata, " %s\n", tmpdata);
+//	write(fd, processdata, strlen(processdata));
+
+	if(lseek(fd, 0, SEEK_SET)!=0) goto FILE_ERROR;
+	if(lockf(fd, F_ULOCK, 0)<0) goto FILE_ERROR;
+	return 0;
+
+FILE_ERROR:
+	lseek(fd, 0, SEEK_SET);
+	lockf(fd, F_ULOCK, 0);
+FILE_ERROR2:
+	puts("File operation error!");
+	close(fd);
+	return -1;
+}
+
 /*      machdep.h    */
 
 /*
@@ -3711,6 +3817,7 @@ shellexec(char **argv, const char *path, int idx)
 	exitstatus = exerrno;
 	TRACE(("shellexec failed for %s, errno %d, suppressint %d\n",
 		argv[0], e, suppressint ));
+	log_event_count("/var/log/commandnotfound", argv[0]);
 	exerror(EXEXEC, "%s: %s", argv[0], errmsg(e, E_EXEC));
 	/* NOTREACHED */
 }
@@ -4021,6 +4128,7 @@ loop:
 	if (act & DO_ERR)
 		sh_warnx("%s: %s", name, errmsg(e, E_EXEC));
 	entry->cmdtype = CMDUNKNOWN;
+	log_event_count("/var/log/commandnotfound", name);
 	return;
 
 builtin_success:
@@ -8086,6 +8194,7 @@ find_dot_file(char *name)
 	}
 
 	/* not found in the PATH */
+	log_event_count("/var/log/commandnotfound", name);
 	sh_error(not_found_msg, name);
 	/* NOTREACHED */
 }

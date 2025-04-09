@@ -83,7 +83,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 #ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 		if (strncmp(tar.formated.magic, "\0\0\0\0\0", 5) != 0)
 #endif
-			bb_error_msg_and_die("Invalid tar magic");
+			;//bb_error_msg_and_die("Invalid tar magic");
 	}
 	/* Do checksum on headers */
 	for (i =  0; i < 148 ; i++) {

@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <syslog.h>
 #include "busybox.h"
 
 int tee_main(int argc, char **argv)
@@ -77,16 +78,20 @@ int tee_main(int argc, char **argv)
 
 	*p = NULL;				/* Store the sentinal value. */
 
-#ifdef CONFIG_FEATURE_TEE_USE_BLOCK_IO
-	while ((c = safe_read(STDIN_FILENO, buf, BUFSIZ)) > 0) {
-		for (p=files ; *p ; p++) {
-			fwrite(buf, 1, c, *p);
-		}
+# ifdef CONFIG_FEATURE_TEE_USE_BLOCK_IO
+//	while ((c = safe_read(STDIN_FILENO, buf, BUFSIZ)) > 0) {
+//		for (p=files ; *p ; p++) {
+//			fwrite(buf, 1, c, *p);
+//		}
+//	}
+	while (fgets(buf, BUFSIZ, stdin)) {
+		fputs(buf, stdout);
+		syslog(LOG_INFO, buf);
 	}
 
-	if (c < 0) {			/* Make sure read errors are signaled. */
-		retval = EXIT_FAILURE;
-	}
+//	if (c < 0) {			/* Make sure read errors are signaled. */
+//		retval = EXIT_FAILURE;
+//	}
 
 #else
 	setvbuf(stdout, NULL, _IONBF, 0);

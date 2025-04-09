@@ -59,6 +59,17 @@ config CONFIG_FEATURE_INITRD
 	  This does not apply to initramfs, which runs /init as PID 1 and
 	  requires no special support.
 
+config CONFIG_FEATURE_REEXEC_INIT
+	bool "  Support running a new init that may reside in another root device"
+	default n
+	depends on CONFIG_INIT
+	help
+	  If this is enabled, sending signal 6 to init (kill -6 1) will cause it
+	  to run the script of /etc/reexec_init/init.script and then re-run a
+	  new init in new root device. The new init will replace the old one, and
+	  its pid is also 1. This will be helpful if the root device is originally
+	  in squashfs and you want to update images to flash.
+
 config CONFIG_HALT
 	bool "poweroff, halt, and reboot"
 	default y
@@ -72,4 +83,9 @@ config CONFIG_MESG
 	  Mesg controls access to your terminal by others.  It is typically
 	  used to allow or disallow other users to write to your terminal
 
+	default y
+	help
+	  Stop all processes and (try to) power off the system.
+
 endmenu
+

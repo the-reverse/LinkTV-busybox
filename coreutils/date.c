@@ -29,7 +29,7 @@
 
 /* Default input handling to save surprising some people */
 
-static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
+struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 {
 	int nr;
 	char *cp;
@@ -48,7 +48,8 @@ static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 		if (nr != 1) {
 			bb_error_msg_and_die(bb_msg_invalid_date, t_string);
 		}
-	}
+	} else
+		tm_time->tm_sec = 0;
 
 	/* correct for century  - minor Y2K problem here? */
 	if (tm_time->tm_year >= 1900) {

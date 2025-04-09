@@ -68,10 +68,14 @@ errcode_t ext2fs_write_inode_bitmap(ext2_filsys fs)
 		return 0;
 	nbytes = (size_t) ((EXT2_INODES_PER_GROUP(fs->super)+7) / 8);
 
-	retval = ext2fs_get_mem(fs->blocksize, &bitmap_block);
-	if (retval)
-		return retval;
+            //retval = ext2fs_get_mem(fs->blocksize, &bitmap_block);
+        bitmap_block = memalign(getpagesize(), fs->blocksize);
+
 	memset(bitmap_block, 0xff, fs->blocksize);
+        retval = io_channel_reopen(fs->io, O_RDWR | O_DIRECT);
+        if (retval)
+            return retval;
+        
 	for (i = 0; i < fs->group_desc_count; i++) {
 		memcpy(bitmap_block, inode_bitmap, nbytes);
 		blk = fs->group_desc[i].bg_inode_bitmap;
@@ -88,8 +92,9 @@ errcode_t ext2fs_write_inode_bitmap(ext2_filsys fs)
 		}
 		inode_bitmap += nbytes;
 	}
+        io_channel_reopen(fs->io, O_RDWR);
 	fs->flags &= ~EXT2_FLAG_IB_DIRTY;
-	ext2fs_free_mem(&bitmap_block);
+	free(bitmap_block);
 	return 0;
 }
 
@@ -111,10 +116,13 @@ errcode_t ext2fs_write_block_bitmap (ext2_filsys fs)
 	if (!block_bitmap)
 		return 0;
 	nbytes = EXT2_BLOCKS_PER_GROUP(fs->super) / 8;
-	retval = ext2fs_get_mem(fs->blocksize, &bitmap_block);
-	if (retval)
-		return retval;
+	bitmap_block = memalign(getpagesize(), fs->blocksize);
+
 	memset(bitmap_block, 0xff, fs->blocksize);
+        retval = io_channel_reopen(fs->io, O_RDWR | O_DIRECT);
+        if (retval)
+            return retval;
+        
 	for (i = 0; i < fs->group_desc_count; i++) {
 		memcpy(bitmap_block, block_bitmap, nbytes);
 		if (i == fs->group_desc_count - 1) {
@@ -140,8 +148,9 @@ errcode_t ext2fs_write_block_bitmap (ext2_filsys fs)
 		}
 		block_bitmap += nbytes;
 	}
+        io_channel_reopen(fs->io, O_RDWR);
 	fs->flags &= ~EXT2_FLAG_BB_DIRTY;
-	ext2fs_free_mem(&bitmap_block);
+	free(bitmap_block);
 	return 0;
 }
 

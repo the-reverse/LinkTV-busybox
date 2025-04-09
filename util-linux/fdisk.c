@@ -237,8 +237,8 @@ static int get_boot(enum action what);
 			}
 
 
-static int32_t get_start_sect(const struct partition *p);
-static int32_t get_nr_sects(const struct partition *p);
+static unsigned long long get_start_sect(const struct partition *p);
+static unsigned long long  get_nr_sects(const struct partition *p);
 
 /*
  * per partition table entry data
@@ -3327,7 +3327,7 @@ set_start_sect(struct partition *p, unsigned int start_sect)
 }
 #endif
 
-static int32_t
+static unsigned long long
 get_start_sect(const struct partition *p)
 {
 	return read4_little_endian(p->start4);
@@ -3341,7 +3341,7 @@ set_nr_sects(struct partition *p, int32_t nr_sects)
 }
 #endif
 
-static int32_t
+static unsigned long long
 get_nr_sects(const struct partition *p)
 {
 	return read4_little_endian(p->size4);
@@ -5743,7 +5743,7 @@ int fdisk_main(int argc, char **argv)
 			break;
 		case 'V':
 		case 'v':
-			printf("fdisk v" UTIL_LINUX_VERSION "\n");
+			printf("fdisk v" UTIL_LINUX_VERSION "david\n");
 			return 0;
 		default:
 			bb_show_usage();

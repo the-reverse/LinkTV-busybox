@@ -105,6 +105,7 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 	blk_t		numblocks;
 	int		rsv_gdt;
 	char		*buf;
+	int		extk = 0;
 
 	if (!param || !param->s_blocks_count)
 		return EXT2_ET_INVALID_ARGUMENT;
@@ -115,6 +116,10 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 
 	memset(fs, 0, sizeof(struct struct_ext2_filsys));
 	fs->magic = EXT2_ET_MAGIC_EXT2FS_FILSYS;
+	if (flags & EXT2_FLAG_KMARKER) {
+		extk = 1;
+		flags &= ~(EXT2_FLAG_KMARKER);
+	}
 	fs->flags = flags | EXT2_FLAG_RW;
 	fs->umask = 022;
 #ifdef WORDS_BIGENDIAN
@@ -140,7 +145,10 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 #define set_field(field, default) (super->field = param->field ? \
 				   param->field : (default))
 
-	super->s_magic = EXT2_SUPER_MAGIC;
+	if (extk)
+		super->s_magic = EXTK_SUPER_MAGIC;
+	else
+		super->s_magic = EXT2_SUPER_MAGIC;
 	super->s_state = EXT2_VALID_FS;
 
 	set_field(s_log_block_size, 0);	/* default blocksize: 1024 bytes */

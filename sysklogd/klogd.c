@@ -43,8 +43,10 @@ static void doKlogd(const int console_log_level)
 {
 	int priority = LOG_INFO;
 	char log_buffer[4096];
-	int i, n, lastc;
+	int i, n, lastc = '\0';
 	char *start;
+	char remaining_chars[512];	// The chars in the end of buffer and without an ending '\n' will be temporarily put here for later output.
+	int remaining_len = 0;
 
 	openlog("kernel", 0, LOG_KERN);
 
@@ -76,9 +78,11 @@ static void doKlogd(const int console_log_level)
 
 		/* klogctl buffer parsing modelled after code in dmesg.c */
 		start = &log_buffer[0];
-		lastc = '\0';
+//		lastc = '\0';
 		for (i = 0; i < n; i++) {
-			if (lastc == '\0' && log_buffer[i] == '<') {
+			if (remaining_len) {
+				remaining_chars[remaining_len++] = log_buffer[i];
+			} else if (lastc == '\0' && log_buffer[i] == '<') {
 				priority = 0;
 				i++;
 				while (isdigit(log_buffer[i])) {
@@ -89,13 +93,28 @@ static void doKlogd(const int console_log_level)
 					i++;
 				start = &log_buffer[i];
 			}
-			if (log_buffer[i] == '\n') {
+			if (log_buffer[i] == '\n' || remaining_len == 511) {
 				log_buffer[i] = '\0';	/* zero terminate this message */
-				syslog(priority, "%s", start);
+				if (remaining_len) {
+					if (remaining_chars[remaining_len-1] == '\n')
+						remaining_chars[remaining_len-1] = '\0';
+					else
+						remaining_chars[remaining_len] = '\0';
+					syslog(priority, "%s", remaining_chars);
+				} else {
+					syslog(priority, "%s", start);
+				}
 				start = &log_buffer[i + 1];
 				priority = LOG_INFO;
+				lastc = '\0';
+				remaining_len = 0;
 			}
 			lastc = log_buffer[i];
+		}
+/* If there is no '\n' in the remaining chars, they still need to be logged. */
+		if(!remaining_len && i == n && lastc != '\0' && n != 0) {
+			strncpy(&remaining_chars[remaining_len], start, (&log_buffer[i]-start));
+			remaining_len+=&log_buffer[i]-start;
 		}
 	}
 }

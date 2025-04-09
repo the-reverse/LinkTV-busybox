@@ -238,5 +238,5 @@ loop:
 }
 
 #else
-# error makedevs configuration error, either leaf or table must be selected
+# error makdedevs configuration error, either leaf or table must be selected
 #endif

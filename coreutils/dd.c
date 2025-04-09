@@ -106,7 +106,7 @@ int dd_main(int argc, char **argv)
 	buf = xmalloc(bs);
 
 	if (infile != NULL) {
-		ifd = bb_xopen(infile, O_RDONLY);
+		ifd = bb_xopen(infile, O_RDONLY|0x20000000);
 	} else {
 		ifd = STDIN_FILENO;
 		infile = bb_msg_standard_input;
@@ -119,7 +119,7 @@ int dd_main(int argc, char **argv)
 			oflag |= O_TRUNC;
 		}
 
-		if ((ofd = open(outfile, oflag, 0666)) < 0) {
+		if ((ofd = open(outfile, oflag|0x20000000, 0666)) < 0) {
 			bb_perror_msg_and_die("%s", outfile);
 		}
 

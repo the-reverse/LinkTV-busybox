@@ -29,6 +29,7 @@
 #include "libbb.h"
 
 #ifdef L_xgetularg_bnd_sfx
+extern
 unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 								   unsigned long lower,
 								   unsigned long upper,
@@ -91,6 +92,7 @@ unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 #endif
 
 #ifdef L_xgetlarg_bnd_sfx
+extern
 long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 						 long lower,
 						 long upper,
@@ -122,6 +124,7 @@ long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 #endif
 
 #ifdef L_getlarg10_sfx
+extern
 long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes)
 {
 	return bb_xgetlarg_bnd_sfx(arg, 10, LONG_MIN, LONG_MAX, suffixes);
@@ -129,6 +132,7 @@ long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes)
 #endif
 
 #ifdef L_xgetularg_bnd
+extern
 unsigned long bb_xgetularg_bnd(const char *arg, int base,
 							   unsigned long lower,
 							   unsigned long upper)
@@ -138,6 +142,7 @@ unsigned long bb_xgetularg_bnd(const char *arg, int base,
 #endif
 
 #ifdef L_xgetularg10_bnd
+extern
 unsigned long bb_xgetularg10_bnd(const char *arg,
 								 unsigned long lower,
 								 unsigned long upper)
@@ -147,6 +152,7 @@ unsigned long bb_xgetularg10_bnd(const char *arg,
 #endif
 
 #ifdef L_xgetularg10
+extern
 unsigned long bb_xgetularg10(const char *arg)
 {
 	return bb_xgetularg10_bnd(arg, 0, ULONG_MAX);

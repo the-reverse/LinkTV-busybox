@@ -74,23 +74,23 @@ extern size_t bb_strlen(const char *string);
 
 /* ---- Endian Detection ------------------------------------ */
 #ifndef __APPLE__
-# include <byteswap.h>
-# include <endian.h>
+    #include <byteswap.h>
+    #include <endian.h>
 #endif
 
 #ifdef __BIG_ENDIAN__
-# define BB_BIG_ENDIAN 1
+    #define BB_BIG_ENDIAN 1
 #elif __BYTE_ORDER == __BIG_ENDIAN
-# define BB_BIG_ENDIAN 1
+    #define BB_BIG_ENDIAN 1
 #else
-# define BB_BIG_ENDIAN 0
+    #define BB_BIG_ENDIAN 0
 #endif
 
 /* ---- Networking ------------------------------------------ */
 #ifndef __APPLE__
-# include <arpa/inet.h>
+#include <arpa/inet.h>
 #else
-# include <netinet/in.h>
+#include <netinet/in.h>
 #endif
 
 /* ---- miscellaneous --------------------------------------- */

@@ -1,8 +1,3 @@
-/* vi: set sw=4 ts=4: */
-/*
- * Public domain.
- *
- */
 #include "busybox.h"
 #include "bbconfigopts.h"
 

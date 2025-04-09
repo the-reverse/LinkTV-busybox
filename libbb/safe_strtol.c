@@ -25,6 +25,7 @@
 #include "libbb.h"
 
 #ifdef L_safe_strtoi
+extern
 int safe_strtoi(char *arg, int* value)
 {
 	int error;
@@ -36,6 +37,7 @@ int safe_strtoi(char *arg, int* value)
 #endif
 
 #ifdef L_safe_strtod
+extern
 int safe_strtod(char *arg, double* value)
 {
 	char *endptr;
@@ -53,6 +55,7 @@ int safe_strtod(char *arg, double* value)
 #endif
 
 #ifdef L_safe_strtol
+extern
 int safe_strtol(char *arg, long* value)
 {
 	char *endptr;
@@ -70,6 +73,7 @@ int safe_strtol(char *arg, long* value)
 #endif
 
 #ifdef L_safe_strtoul
+extern
 int safe_strtoul(char *arg, unsigned long* value)
 {
 	char *endptr;

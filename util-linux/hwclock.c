@@ -49,6 +49,8 @@ struct linux_rtc_time {
 
 #define RTC_SET_TIME   _IOW('p', 0x0a, struct linux_rtc_time) /* Set RTC time    */
 #define RTC_RD_TIME    _IOR('p', 0x09, struct linux_rtc_time) /* Read RTC time   */
+#define RTC_ALM_SET    _IOW('p', 0x07, struct linux_rtc_time)
+#define RTC_ALM_READ   _IOR('p', 0x08, struct linux_rtc_time)
 
 #ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 # ifndef _GNU_SOURCE
@@ -130,6 +132,51 @@ static int show_clock(int utc)
 	return 0;
 }
 
+static int show_alarm(void)
+{
+	int rtc;
+	struct tm tm;
+	char buffer [64];
+
+	if (( rtc = open ( "/dev/rtc", O_RDONLY )) < 0 ) {
+		if (( rtc = open ( "/dev/misc/rtc", O_RDONLY )) < 0 )
+			bb_perror_msg_and_die ( "Could not access RTC" );
+	}
+	memset ( &tm, 0, sizeof( struct tm ));
+	if ( ioctl ( rtc, RTC_ALM_READ, &tm ) < 0 )
+		bb_perror_msg_and_die ( "Could not read time from RTC" );
+	tm. tm_isdst = -1; // not known
+
+	close ( rtc );
+
+	safe_strncpy ( buffer, asctime ( &tm ), sizeof( buffer ));
+	if ( buffer [0] )
+		buffer [bb_strlen ( buffer ) - 1] = 0;
+
+	//printf ( "%s  %.6f seconds %s\n", buffer, 0.0, utc ? "" : ( ptm-> tm_isdst ? tzname [1] : tzname [0] ));
+	printf ( "%s  %.6f seconds\n", buffer, 0.0 );
+
+	return 0;
+}
+
+extern struct tm *date_conv_time(struct tm *tm_time, const char *t_string);
+static void set_alarm(char *date)
+{
+	int rtc;
+	struct tm tm;
+
+	if (( rtc = open ( "/dev/rtc", O_WRONLY )) < 0 ) {
+		if (( rtc = open ( "/dev/misc/rtc", O_WRONLY )) < 0 )
+			bb_perror_msg_and_die ( "Could not access RTC" );
+	}
+	date_conv_time(&tm, date);
+
+	if ( ioctl ( rtc, RTC_ALM_SET, &tm ) < 0 )
+		bb_perror_msg_and_die ( "Could not set the RTC time" );
+
+	close ( rtc );
+}
+
 static int to_sys_clock(int utc)
 {
 	struct timeval tv = { 0, 0 };
@@ -191,11 +238,14 @@ static int check_utc(void)
 #define HWCLOCK_OPT_SHOW		0x04
 #define HWCLOCK_OPT_HCTOSYS		0x08
 #define HWCLOCK_OPT_SYSTOHC		0x10
+#define HWCLOCK_OPT_SHOWALM		0x20
+#define HWCLOCK_OPT_SETALM		0x40
 
 int hwclock_main ( int argc, char **argv )
 {
 	unsigned long opt;
 	int utc;
+	char *set_date=NULL;
 
 #ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 static const struct option hwclock_long_options[] = {
@@ -209,8 +259,8 @@ static const struct option hwclock_long_options[] = {
 	bb_applet_long_options = hwclock_long_options;
 #endif
 
-	bb_opt_complementally = "?:r--ws:w--rs:s--wr:l--u:u--l";
-	opt = bb_getopt_ulflags(argc, argv, "lursw");
+	bb_opt_complementally = "?:r--wsRW:w--rsRW:s--wrRW:l--uRW:u--lRW:R--lurswW:W--lurswR";
+	opt = bb_getopt_ulflags(argc, argv, "lurswRW:", &set_date);
 
 	/* If -u or -l wasn't given check if we are using utc */
 	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))
@@ -223,6 +273,13 @@ static const struct option hwclock_long_options[] = {
 	}
 	else if (opt & HWCLOCK_OPT_SYSTOHC) {
 		return from_sys_clock ( utc );
+	}
+	else if (opt & HWCLOCK_OPT_SHOWALM) {
+		return show_alarm ();
+	}
+	else if (opt & HWCLOCK_OPT_SETALM) {
+		set_alarm (set_date);
+		return 0;
 	} else {
 		/* default HWCLOCK_OPT_SHOW */
 		return show_clock ( utc );

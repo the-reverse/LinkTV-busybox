@@ -39,11 +39,6 @@
 #endif
 
 
-#ifdef CONFIG_SELINUX
-# include <selinux/selinux.h>
-#endif /* CONFIG_SELINUX */
-
-
 #define INIT_BUFFS_SIZE 256
 
 /* From <linux/vt.h> */
@@ -776,6 +771,57 @@ static void halt_signal(int sig ATTRIBUTE_UNUSED)
 	loop_forever();
 }
 
+/*
+	This function is used to execute another init. It would normally be used in
+	the situation that root is originally in squashfs and we would like to change 
+	root to ram, and therefore updating flash is possible.
+	There need to be a script, /etc/reexec_init/init.script, to do some things in 
+	advance.
+*/
+#ifdef CONFIG_FEATURE_REEXEC_INIT
+static void reexec_init_handler(int sig ATTRIBUTE_UNUSED)
+{
+	/* Send signals to every process _except_ pid 1 */
+	message(CONSOLE | LOG, "Sending SIGTERM to all processes.");
+	kill(-1, SIGTERM);
+	sleep(1);
+	sync();
+
+	message(CONSOLE | LOG, "Sending SIGKILL to all processes.");
+	kill(-1, SIGKILL);
+	sleep(1);
+	sync();
+
+	/* Close whatever files are open. */
+	close(0);
+	close(1);
+	close(2);
+
+	/* Open the new terminal device */
+	if ((device_open("/dev/console", O_RDWR)) < 0) {
+		struct stat sb;
+		if (stat("/dev/console", &sb) != 0) {
+			message(LOG | CONSOLE, "device '%s' does not exist.", "/dev/console");
+		} else {
+			message(LOG | CONSOLE, "Bummer, can't open %s", "/dev/console");
+		}
+		_exit(1);
+	}
+
+	/* Make sure the terminal will act fairly normal for us */
+	set_term(0);
+	/* Setup stdout, stderr on the supplied terminal */
+	dup(0);
+	dup(0);
+
+	system("/etc/reexec_init/init.script");
+	close(0);
+	close(1);
+	close(2);
+	execl("/sbin/init", "/sbin/init", NULL);
+}
+#endif
+
 static void reboot_signal(int sig ATTRIBUTE_UNUSED)
 {
 	shutdown_system();
@@ -1041,6 +1087,9 @@ int init_main(int argc, char **argv)
 	signal(SIGCONT, cont_handler);
 	signal(SIGSTOP, stop_handler);
 	signal(SIGTSTP, stop_handler);
+#ifdef CONFIG_FEATURE_REEXEC_INIT
+	signal(SIGABRT, reexec_init_handler);
+#endif
 
 	/* Turn off rebooting via CTL-ALT-DEL -- we get a
 	 * SIGINT on CAD so we can shut things down gracefully... */
@@ -1101,22 +1150,6 @@ int init_main(int argc, char **argv)
 		 * of "askfirst" shells */
 		parse_inittab();
 	}
-
-#ifdef CONFIG_SELINUX
-	if (getenv("SELINUX_INIT") == NULL) {
-		int enforce = 0;
-
-		putenv("SELINUX_INIT=YES");
-		if (selinux_init_load_policy(&enforce) == 0) {
-			execv(argv[0], argv);
-		} else if (enforce > 0) {
-			/* SELinux in enforcing mode but load_policy failed */
-			/* At this point, we probably can't open /dev/console, so log() won't work */
-			message(CONSOLE,"Unable to load SELinux Policy. Machine is in enforcing mode. Halting now.");
-			exit(1);
-		}
-	}
-#endif /* CONFIG_SELINUX */
 
 	/* Make the command line just say "init"  -- thats all, nothing else */
 	fixup_argv(argc, argv, "init");

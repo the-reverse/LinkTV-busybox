@@ -1207,7 +1207,7 @@
 	"\t-d STRING\tURL decode STRING"
 
 #define hwclock_trivial_usage \
-	"[-r|--show] [-s|--hctosys] [-w|--systohc] [-l|--localtime] [-u|--utc]"
+	"[-r|--show] [-s|--hctosys] [-w|--systohc] [-l|--localtime] [-u|--utc] [-R] [-W]"
 #define hwclock_full_usage \
 	"Query and set the hardware clock (RTC)\n\n" \
 	"Options:\n" \
@@ -1215,7 +1215,9 @@
 	"\t-s\tset the system time from the hardware clock\n" \
 	"\t-w\tset the hardware clock to the current system time\n" \
 	"\t-u\tthe hardware clock is kept in coordinated universal time\n" \
-	"\t-l\tthe hardware clock is kept in local time"
+	"\t-l\tthe hardware clock is kept in local time\n" \
+	"\t-R\tread the RTC alarm time and print result\n" \
+	"\t-W\tset the RTC alarm time"
 
 #ifdef CONFIG_SELINUX
 #  define USAGE_SELINUX(a) a
@@ -2648,11 +2650,6 @@
 #define setkeycodes_example_usage \
 	"$ setkeycodes e030 127\n"
 
-#define setlogcons_trivial_usage \
-	"N"
-#define setlogcons_full_usage \
-	"Redirects the kernel output to console N (0 for current)."
-
 #define setsid_trivial_usage \
 	"program [arg ...]"
 #define setsid_full_usage \
@@ -2951,6 +2948,8 @@
 	"Options:\n" \
 	"\t-m MIN\t\tMinutes between MARK lines (default=20, 0=off)\n" \
 	"\t-n\t\tRun as a foreground process\n" \
+	/* Add support of -p parameter of syslogd */
+	"\t-p FILE\t\tUse and alternate log socket (default=/dev/log)\n" \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n" \
 	"\t-S\t\tMake logging output smaller." \
 	USAGE_ROTATE_LOGFILE( \
